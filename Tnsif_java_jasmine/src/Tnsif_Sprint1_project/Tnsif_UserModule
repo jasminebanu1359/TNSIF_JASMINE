@@ -1,0 +1,187 @@
+package com.example.demo;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "users")
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
+    private String type;
+
+    @Column(nullable = false)
+    private String password;
+
+    public User() {}
+
+    public User(Long id, String name, String type, String password) {
+        this.id = id;
+        this.name = name;
+        this.type = type;
+        this.password = password;
+    }
+
+    // Getters & Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+}
+
+
+package com.example.demo;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/users")
+@CrossOrigin("*")
+public class UserController {
+
+    @Autowired
+    private UserService userService;
+
+    @PostMapping("/register")
+    public User registerUser(@RequestBody User user) {
+        return userService.addUser(user);
+    }
+
+    @PostMapping("/login")
+    public User loginUser(@RequestBody User user) {
+        return userService.loginUser(user);
+    }
+
+    @PostMapping("/logout")
+    public String logout() {
+        userService.logout();
+        return "User logged out successfully";
+    }
+
+    @PutMapping("/update")
+    public User updateUser(@RequestBody User user) {
+        return userService.updateUser(user);
+    }
+
+    @DeleteMapping("/{id}")
+    public String deleteUser(@PathVariable Long id) {
+        boolean deleted = userService.deleteUser(id);
+        return deleted ? "User deleted successfully" : "User not found";
+    }
+
+    @GetMapping
+    public List<User> getAllUsers() {
+        return userService.getAllUsers();
+    }
+}
+
+package com.example.demo;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+    User findByNameAndPassword(String name, String password);
+}
+
+
+package com.example.demo;
+
+import java.util.List;
+
+public interface UserService {
+    User addUser(User user);
+    User updateUser(User user);
+    User loginUser(User user);
+    boolean logout();
+    boolean deleteUser(Long id);
+    List<User> getAllUsers();
+}
+
+package com.example.demo;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import java.util.List;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    private boolean loggedIn = false;
+
+    @Override
+    public User addUser(User user) {
+        return userRepository.save(user);
+    }
+
+    @Override
+    public User updateUser(User user) {
+        if (userRepository.existsById(user.getId())) {
+            return userRepository.save(user);
+        }
+        return null;
+    }
+
+    @Override
+    public User loginUser(User user) {
+        User foundUser = userRepository.findByNameAndPassword(user.getName(), user.getPassword());
+        if (foundUser != null) {
+            loggedIn = true;
+            return foundUser;
+        }
+        return null;
+    }
+
+    @Override
+    public boolean logout() {
+        loggedIn = false;
+        return true;
+    }
+
+    @Override
+    public boolean deleteUser(Long id) {
+        if (userRepository.existsById(id)) {
+            userRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+}
+
+package com.example.demo;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class Demo1Application {
+
+    public static void main(String[] args) {
+        SpringApplication.run(Demo1Application.class, args);
+        System.out.println("✅ Demo-1 Application Started with User Module!");
+    }
+}
